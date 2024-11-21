@@ -15,57 +15,39 @@ const app = express();
 
 app.set('view engine', 'ejs');
 
-app.set('views', `${__dirname}\\client\\views`);
+app.set('views', `${__dirname}\\client\\views\\`);
 app.use('/socket.io-client', express.static(`${__dirname}\\node_modules\\socket.io\\client-dist\\`));
 app.use('/js', express.static(`${__dirname}\\client\\js\\`));
 
 app.use(express.json({ limit: '10gb' }));
 app.use(express.urlencoded({ limit: '10gb', extended: true }));
 
-app.get('/', (request, response) =>
-{
-    response.render('main');
-});
+app.get('/', (request, response) => response.render('main'));
 
 app.post('/upload', (request, response) =>
 {
-    const uploadsDir = path.join(__dirname, 'uploads');
+    const uploadsDir = `${__dirname}\\uploads\\`;
 
-    if (!fs.existsSync(uploadsDir))
-    {
-        fs.mkdirSync(uploadsDir);
-    }
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
     else
     {
         const originalFileName = request.headers['x-filename'];
         const startByte = parseInt(request.headers['x-start-byte'] || '0', 10);
 
-        if (!originalFileName)
-        {
-            return response.status(400).send('Missing file name');
-        }
+        if (!originalFileName) return response.status(400).send('Missing file name');
 
         const filePath = path.join(uploadsDir, originalFileName);
         const fileStream = fs.createWriteStream(filePath, {flags: 'a', start: startByte});
 
         request.pipe(fileStream);
 
-        fileStream.on('finish', () =>
-        {
-            response.send('File uploaded successfully');
-        });
+        fileStream.on('finish', () => response.sendStatus(200));
 
         fileStream.on('error', (err) =>
         {
             console.error('Error writing file:', err);
             response.status(500).send('Error during file upload');
-        });
-
-        request.on('error', (err) =>
-        {
-            console.error('Error during upload:', err);
-            response.status(500).send('Error during upload');
         });
     }
 });

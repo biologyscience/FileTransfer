@@ -1,48 +1,38 @@
 const socket = io({ autoConnect: false });
 
-// Create an XMLHttpRequest object
-const xhr = new XMLHttpRequest();
+let uploadedBytes = 0, percentComplete = 0;
 
-let uploadedBytes = 0, percentComplete;
+let chunkSize = 1024 * 1000 * 1; // 1 MB
 
-function uploadFileChunk(file)
+function uploadFile(file)
 {
-    const chunkSize = 1024 * 1000 * 100; // 100 MB
     const chunk = file.slice(uploadedBytes, uploadedBytes + chunkSize);
 
-    xhr.open('POST', `${window.location.href}upload`, true);
-    xhr.setRequestHeader('x-filename', file.name);
-    xhr.setRequestHeader('x-start-byte', uploadedBytes);
-
-    xhr.onload = () =>
+    fetch(`${window.location.href}upload`, {method: 'POST', body: chunk, headers: {'x-filename': file.name, 'x-start-byte': uploadedBytes}})
+    .then((x) =>
     {
-        if (xhr.status === 200)
+        if (x.ok)
         {
             uploadedBytes += chunk.size;
 
+            percentComplete = (uploadedBytes / file.size) * 100;
+            document.getElementById('progressBar').value = percentComplete;
+
             if (uploadedBytes < file.size)
             {
-                uploadFileChunk(file); // Upload next chunk
+                uploadFile(file); // Upload next chunk
             }
 
             else
             {
                 console.log('Upload complete');
+                document.getElementById('status').textContent = 'Upload complete!';
             }
         }
-    };
 
-    xhr.onerror = (e) =>
-    {
-        console.error(e);
-
-        socket.emit('console', e);
-    };
-
-    xhr.send(chunk);
-
-    percentComplete = (uploadedBytes / file.size) * 100;
-    document.getElementById('progressBar').value = percentComplete;
+        else socket.emit('console', 'Client: Server did not say OK');
+    })
+    .catch((e) => socket.emit('console', e));
 }
 
 document.getElementById('uploadForm').addEventListener('submit', (event) =>
@@ -51,37 +41,12 @@ document.getElementById('uploadForm').addEventListener('submit', (event) =>
 
     const fileInput = document.getElementById('fileInput');
 
-    if (!fileInput.files.length)
-    {
-        document.getElementById('status').textContent = 'Please select a file!';
-        return;
-    }
+    if (fileInput.files.length === 0) return document.getElementById('status').textContent = 'Please select a file!';
 
     else
     {
         const file = fileInput.files[0];
 
-        // On upload completion
-        xhr.addEventListener('load', () =>
-                {
-            if (xhr.status === 200)
-            {
-                        document.getElementById('status').textContent = 'Upload complete!';
-            }
-            else
-            {
-                        document.getElementById('status').textContent = `Error: ${xhr.statusText}`;
-            }
-        });
-
-        // On error
-        xhr.addEventListener('error', () =>
-        {
-            document.getElementById('status').textContent = 'Upload failed!';
-        });
-
-        uploadFileChunk(file);
-                
         socket.connect();
         const int = setInterval(() => 
         {
@@ -89,5 +54,7 @@ document.getElementById('uploadForm').addEventListener('submit', (event) =>
                     
             if (percentComplete >= 100) clearInterval(int);
         }, 5000);
+
+        uploadFile(file);
     }
 });
