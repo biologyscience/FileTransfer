@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload with Progress</title>
+    <script src="socket.io-client/socket.io.min.js"></script>
+    <script src="js/chatGPT.js" defer></script>
+    <!-- <script src="js/chatGPTbutFetch.js" defer></script> -->
+</head>
+<body>
+    <h1>Upload a ZIP File with Progress</h1>
+    <form id="uploadForm">
+        <label for="fileInput">Select a ZIP file:</label>
+        <input type="file" id="fileInput" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+    <progress id="progressBar" value="0" max="100" style="width: 100%;"></progress>
+    <p id="status"></p>
+</body>
+</html>
