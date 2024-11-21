@@ -2,7 +2,7 @@ const socket = io({ autoConnect: false });
 
 let uploadedBytes = 0, percentComplete = 0;
 
-let chunkSize = 1024 * 1000 * 1; // 1 MB
+let chunkSize;
 
 function uploadFile(file)
 {
@@ -26,6 +26,7 @@ function uploadFile(file)
             else
             {
                 console.log('Upload complete');
+                console.timeEnd('uploadTime');
                 document.getElementById('status').textContent = 'Upload complete!';
             }
         }
@@ -54,6 +55,10 @@ document.getElementById('uploadForm').addEventListener('submit', (event) =>
                     
             if (percentComplete >= 100) clearInterval(int);
         }, 5000);
+
+        console.time('uploadTime');
+
+        chunkSize = 1024 * 1000 * 10; // 1 MB
 
         uploadFile(file);
     }
